@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventário de Patrimônio</title>
+    <!-- Biblioteca de leitura de QR Code -->
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background-color: #f4f4f9; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin: 15px auto; max-width: 500px; text-align: left; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 4px; width: 100%; max-width: 500px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        #downloadBtn { background-color: #28a745; margin-top: 20px; }
+        #downloadBtn:hover { background-color: #218838; }
+        #status { font-weight: bold; color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+    <h2>Levantamento de Patrimônio</h2>
+    
+    <!-- Scanner de QR Code -->
+    <div id="reader"></div>
+    <div id="status">Aguardando leitura...</div>
+
+    <!-- Formulário de Coleta de Dados -->
+    <div class="form-group">
+        <label for="patrimonio">Código do Patrimônio:</label>
+        <input type="text" id="patrimonio" placeholder="Escaneie o QR Code ou digite">
+    </div>
+
+    <div class="form-group">
+        <label for="estado">Estado de Conservação:</label>
+        <select id="estado">
+            <option value="Excelente">Excelente</option>
+            <option value="Bom">Bom</option>
+            <option value="Regular">Regular</option>
+            <option value="Ruim">Ruim</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="obs">Observações / Localização:</label>
+        <input type="text" id="obs" placeholder="Ex: Sala 202, monitor com risco">
+    </div>
+
+    <button onclick="salvarItem()">Salvar Item</button>
+    <button id="downloadBtn" onclick="exportarExcel()">Baixar Planilha (CSV)</button>
+
+    <script>
+        let dadosInventario = [];
+
+        // Inicializa o Scanner de QR Code
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+
+        // Ação executada ao ler um QR Code com sucesso
+        function onScanSuccess(decodedText) {
+            document.getElementById('patrimonio').value = decodedText;
+            document.getElementById('status').innerText = "QR Code lido com sucesso!";
+            navigator.vibrate([100]); // Vibra o celular ao ler (se suportado)
+        }
+
+        // Salva as informações digitadas na memória do navegador
+        function salvarItem() {
+            const codigo = document.getElementById('patrimonio').value;
+            const estado = document.getElementById('estado').value;
+            const obs = document.getElementById('obs').value;
+            const dataHora = new Date().toLocaleString('pt-BR');
+
+            if (!codigo) {
+                alert("Por favor, escaneie ou digite um código de patrimônio.");
+                return;
+            }
+
+            dadosInventario.push({ codigo, estado, obs, dataHora });
+            
+            // Limpa o formulário para o próximo item
+            document.getElementById('patrimonio').value = '';
+            document.getElementById('obs').value = '';
+            document.getElementById('status').innerText = "Item salvo! Pronto para o próximo.";
+            
+            alert("Item adicionado ao inventário!");
+        }
+
+        // Exporta a lista acumulada para um arquivo Excel/CSV
+        function exportarExcel() {
+            if (dadosInventario.length === 0) {
+                alert("Nenhum item inventariado ainda.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF garante acentuação correta no Excel
+            csvContent += "Código do Patrimônio;Estado;Observação;Data e Hora\n";
+
+            dadosInventario.forEach(item => {
+                csvContent += `"${item.codigo}";"${item.estado}";"${item.obs}";"${item.dataHora}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `inventario_patrimonio_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
